@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.forms.fields import CharField
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
-
+from loguru import logger
 from phonenumber_field.phonenumber import to_python, validate_region
 from phonenumber_field.validators import validate_international_phonenumber
 from phonenumber_field.widgets import RegionalPhoneNumberWidget
@@ -52,11 +52,14 @@ class PhoneNumberField(CharField):
             )
 
     def to_python(self, value):
-        if self.region is None:
+        if self.region is None and value:
             # attempt to get region from phone number
-            pn = phonenumbers.parse(value)
-            self.region = phonenumbers.region_code_for_country_code(pn.country_code)
-
+            try:
+                pn = phonenumbers.parse(value)
+                self.region = phonenumbers.region_code_for_country_code(pn.country_code)
+            except Exception as ex:
+                logger.error(f"error while attempting to retrieve region from phonenumber value:{ex}")
+                
         phone_number = to_python(value, region=self.region)
 
         if phone_number in validators.EMPTY_VALUES:
