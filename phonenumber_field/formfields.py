@@ -52,6 +52,11 @@ class PhoneNumberField(CharField):
             )
 
     def to_python(self, value):
+        if self.region is None:
+            # attempt to get region from phone number
+            pn = phonenumbers.parse(value)
+            self.region = phonenumbers.region_code_for_country_code(pn.country_code)
+
         phone_number = to_python(value, region=self.region)
 
         if phone_number in validators.EMPTY_VALUES:
